@@ -58,7 +58,7 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
 
     console.log(`EYES HERE: ${postsQuery}`)
 
-    const totalPostsCount = await Thread.countDocuments({parenId: {$in: [null, undefined]}})
+    const totalPostsCount = await Thread.countDocuments({parentId: {$in: [null, undefined]}})
 
     const posts = await postsQuery.exec();
 
