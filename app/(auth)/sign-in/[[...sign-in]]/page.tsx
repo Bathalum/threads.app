@@ -6,7 +6,7 @@ import { dark } from '@clerk/themes';
 
 export const metadata: Metadata = {
   title: 'MTO',
-  description: 'A Next.js 13 Meta Threads Application'
+  description: 'Wag tumigil sa pagahahanap, lagi naman May Trabaho Online'
 }
  
 export default function Page() {
