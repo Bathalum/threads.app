@@ -2,6 +2,7 @@ import Topbar from '@/components/shared/Topbar'
 import LeftSidebar from '@/components/shared/LeftSidebar'
 import RightSidebar from '@/components/shared/RightSidebar'
 import Bottombar from '@/components/shared/Bottombar'
+
 import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs';
 
@@ -10,6 +11,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  //check if user is logged, if not then redirect to sign-in page.
   const user = await currentUser();
   if (!user) redirect('/sign-in');
 

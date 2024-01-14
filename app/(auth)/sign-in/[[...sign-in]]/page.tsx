@@ -2,6 +2,8 @@ import { SignIn } from "@clerk/nextjs";
 import type { Metadata } from 'next'
 import Image from "next/image";
 
+import { dark } from '@clerk/themes';
+
 export const metadata: Metadata = {
   title: 'MTO',
   description: 'A Next.js 13 Meta Threads Application'
@@ -11,7 +13,7 @@ export default function Page() {
   return (
     <>
       <Image 
-        src={'/assets/mtologo.png'}
+        src={'/assets/mtologo2.png'}
         alt="MTO Logo"
         className="hidden xl:block h-screen w-1/2 object-cover bg-no-repeat"
         width={1000}
