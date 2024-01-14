@@ -1,21 +1,36 @@
 'use server'
 
-import { revalidatePath } from "next/cache";
-import { getJsPageSizeInKb } from "next/dist/build/utils";
-
-import { connectToDB } from "../mongoose"
 import { FilterQuery, SortOrder } from "mongoose";
+import { revalidatePath } from "next/cache";
 
+import Community from "../models/community.model";
 import User from "../models/user.model";
 import Thread from "../models/thread.model";
 
+import { connectToDB } from "../mongoose"
+
+export async function fetchUser(userId:string | null) {
+    try {
+        connectToDB();
+
+        return await User
+            .findOne({ id: userId })
+            .populate({
+                path: 'communities',
+                model: Community,
+            })
+    } catch (error: any) {
+        throw new Error (`Failed to fetch user: ${error.message}`);
+    }
+}
+
 interface Params{
-    userId: string,
-    username: string,
-    name: string,
-    bio: string,
-    image: string,
-    path: string
+    userId: string;
+    username: string;
+    name: string;
+    bio: string;
+    image: string;
+    path: string;
 }
 
 export async function updateUser({
@@ -51,21 +66,6 @@ export async function updateUser({
     }
 }
 
-export async function fetchUser(userId:string | null) {
-    try {
-        connectToDB();
-
-        return await User
-            .findOne({ id: userId })
-            // .populate({
-            //     path: 'communties',
-            //     model: Community
-            // })
-    } catch (error: any) {
-        throw new Error (`Failed to fetch user: ${error.message}`);
-    }
-}
-
 export async function fetchUserPosts(userId: string) {
     try {
         connectToDB();
@@ -75,19 +75,24 @@ export async function fetchUserPosts(userId: string) {
             .populate({
                 path: 'threads',
                 model: Thread,
-                populate: {
-                    path: 'children',
-                    model: Thread,
-                    populate: {
-                        path: 'author',
-                        model: User,
-                        select: 'name image id'
+                populate: [
+                    {
+                        path: 'community',
+                        model: Community,
+                        select: 'name id image _id', // Select the "name" and "_id" fields from the "Community" model
+                    },
+                    {
+                        path: 'children',
+                        model: Thread,
+                        populate: 
+                        {
+                            path: 'author',
+                            model: User,
+                            select: 'name image id', // Select the "name" and "_id" fields from the "User" model
+                        },
                     }
-                }
-            })
-
-        //TODO: Populate community
-
+                ]
+            });
 
         return threads
     } catch (error: any) {
@@ -112,14 +117,18 @@ export async function fetchUsers({
     try {
         connectToDB();
 
+        // Calculate the number of users to skip based on the page number and page size.
         const skipAmount = (pageNumber - 1) * pageSize;
 
+        // Create a case-insensitive regular expression for the provided search string.
         const regex = new RegExp(searchString, 'i')
 
+        // Create an initial query object to filter users.
         const query: FilterQuery<typeof User> = {
             id: {$ne: userId}
         }
 
+          // If the search string is not empty, add the $or operator to match either username or name fields.
         if(searchString.trim() !== '') {
             query.$or = [
                 { username: {$regex: regex}},
@@ -127,6 +136,7 @@ export async function fetchUsers({
             ]
         }
 
+        // Define the sort options for the fetched users based on createdAt field and provided sort order.
         const sortOptions = {createAt: sortBy};
 
         const usersQuery = User.find(query)
@@ -134,12 +144,14 @@ export async function fetchUsers({
             .skip(skipAmount)
             .limit(pageSize);
 
+        // Count the total number of users that match the search criteria (without pagination).
         const totalUsersCount = await User.countDocuments(query);
 
         const users = await usersQuery.exec();
 
         const isNext = totalUsersCount > skipAmount + users.length;
 
+        // Check if there are more users beyond the current page.
         return {users, isNext};
         
     } catch (error: any) {

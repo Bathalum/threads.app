@@ -1,9 +1,12 @@
 'use server'
 
 import { revalidatePath } from "next/cache";
-import Thread from "../models/thread.model";
-import User from "../models/user.model";
+
 import { connectToDB } from "../mongoose"
+
+import User from "../models/user.model";
+import Thread from "../models/thread.model";
+import Community from "../models/community.model";
 
 interface Params{
     text: string,
@@ -16,16 +19,30 @@ export async function createThread({text, author, communityId, path}: Params) {
     try {
         connectToDB();
 
+        const communityIdObject = await Community.findOne(
+            { id: communityId },
+            { _id: 1 }
+        );
+
+        console.log(`Eyes here: ${communityIdObject}`)
+
         const createdThread = await Thread.create({
             text,
             author,
-            community: null,
+            community: communityIdObject,
     });
 
         //update user model
         await User.findByIdAndUpdate(author, {
             $push: { threads: createdThread._id }
-    })
+    });
+
+    if (communityIdObject) {
+        //Update community model
+        await Community.findByIdAndUpdate(communityIdObject, {
+            $push: { threads: createdThread._id},
+        })
+    }
 
     revalidatePath(path);
 
@@ -48,6 +65,10 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
     .limit(pageSize)
     .populate({ path: 'author', model: User})
     .populate({
+        path: 'community',
+        model: Community,
+    })
+    .populate({
         path: 'children',
         populate: {
             path: 'author',
@@ -56,8 +77,6 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
         }
     })
 
-    console.log(`EYES HERE: ${postsQuery}`)
-
     const totalPostsCount = await Thread.countDocuments({parentId: {$in: [null, undefined]}})
 
     const posts = await postsQuery.exec();
@@ -65,6 +84,74 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
     const isNext = totalPostsCount > skipAmount + posts.length;
 
     return { posts, isNext }
+}
+
+export async function fetchAllChildThreads(threadId: string): Promise<any[0]> {
+    const childThreads = await Thread.find({ parentId: threadId });
+
+    const descendantThreads = [];
+
+    for (const childThread of childThreads ) {
+        const descendants = await fetchAllChildThreads(childThread._id);
+        descendantThreads.push(childThread, ...descendants);
+    }
+
+}
+
+export async function deleteThread(id: string, path: string): Promise<void> {
+    try {
+        connectToDB();
+
+        //find the thread to be deleted (the main thread)
+        const mainThread = await Thread.findById(id).populate('author community')
+
+        if (!mainThread) {
+            throw new Error('Thread not found')
+        }
+
+        //fetch all child threads and their descendants recursively
+        const descendantThreads = await fetchAllChildThreads(id);
+
+        //get all descendant thread IDs including the main thread ID and child thread IDs
+        const descendantThreadIds = [
+            id,
+            ...descendantThreads.map((thread: any) => thread._id),
+        ];
+
+        //extract the authorIds and communityIds to update User and Community modesl respectively
+        const uniqueAuthorIds = new Set (
+            [
+                ...descendantThreads.map((thread: any) => thread.author?._id.toString()),// Use optional chaining to handle possible undefined values
+                mainThread.author?._id?.toString(),
+            ].filter((id) => id !== undefined)
+        );
+
+        const uniqueCommunityIds = new Set(
+            [
+              ...descendantThreads.map((thread: any) => thread.community?._id?.toString()), // Use optional chaining to handle possible undefined values
+              mainThread.community?._id?.toString(),
+            ].filter((id) => id !== undefined)
+          );
+        
+        // Recursively delete child threads and their descendants
+        await Thread.deleteMany({ _id: { $in: descendantThreadIds } });
+
+        // Update User model
+        await User.updateMany(
+        { _id: { $in: Array.from(uniqueAuthorIds) } },
+        { $pull: { threads: { $in: descendantThreadIds } } }
+        );
+
+        // Update Community model
+        await Community.updateMany(
+        { _id: { $in: Array.from(uniqueCommunityIds) } },
+        { $pull: { threads: { $in: descendantThreadIds } } }
+        );
+
+        revalidatePath(path);
+    } catch (error) {
+        
+    }
 }
 
 export async function fetchThreadById(id:string) {
@@ -78,22 +165,27 @@ export async function fetchThreadById(id:string) {
                 path: 'author',
                 model: User,
                 select: '_id id name image'
-            })
+            })  // Populate the author field with _id and username
             .populate({
-                path: 'children',
+                path: 'community',
+                model: Community,
+                select: '_id id name image',
+            }) // Populate the community field with _id and name
+            .populate({
+                path: 'children', // Populate the children field
                 populate: [
                     {
-                        path: 'author',
+                        path: 'author', // Populate the author field within children
                         model: User,
-                        select: '_id id name parentId image'
+                        select: '_id id name parentId image',  // Select only _id and username fields of the author
                     },
                     {
-                        path: 'children',
-                        model: Thread,
+                        path: 'children', // Populate the children field within children
+                        model: Thread, // The model of the nested children (assuming it's the same "Thread" model)
                         populate: {
-                            path: 'author',
+                            path: 'author', // Populate the author field within nested children
                             model: User,
-                            select: '_id id name parentId image'
+                            select: '_id id name parentId image', // Select only _id and username fields of the author
                         }
                     }
                 ]
@@ -125,7 +217,7 @@ export async function addCommentToThread(
         const commentThread = new Thread({
             text: commentText,
             author: userId,
-            parentId: threadId
+            parentId: threadId, // Set the parentId to the original thread's ID
         })
 
         //save the new thread

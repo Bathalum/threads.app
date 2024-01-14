@@ -79,8 +79,6 @@ const AccountProfile = ({ user, btnTitle}: Props) => {
     {
         const blob = values.profile_photo;
 
-        console.log(`SET YOUR EYES HERE: ${blob}`)
-
         const hasImageChanged = isBase64Image(blob);
 
         if(hasImageChanged) {
