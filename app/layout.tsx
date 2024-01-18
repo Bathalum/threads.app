@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'MTO',
-  description: 'A Next.js 13 Meta Threads Application',
+  description: 'Wag tumigil sa pagahahanap, lagi naman May Trabaho Online',
   icons: {
     icon: `/assets/favicon.ico`
   }

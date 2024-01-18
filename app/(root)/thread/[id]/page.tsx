@@ -16,43 +16,42 @@ const Page = async ({ params }: { params: {id: string}}) => {
 
     const thread = await fetchThreadById(params.id);
 
-
     return (
         <section className="relative">
             <div>
                 <ThreadCard 
-                    key={thread._id}
-                    id={thread._id}
+                    key={thread?._id}
+                    id={thread?._id}
                     currentUserId={user?.id || ''}
-                    parentId={thread.parentId}
-                    content={thread.text}
-                    author={thread.author}
-                    community={thread.community}
-                    createdAt={thread.createdAt}
-                    comments={thread.children}
+                    parentId={thread?.parentId}
+                    content={thread?.text}
+                    author={thread?.author}
+                    community={thread?.community}
+                    createdAt={thread?.createdAt}
+                    comments={thread?.children}
                     />
             </div>
 
             <div className="mt-7">
                 <Comment 
-                    threadId={thread.id}
-                    currentUserImg={userInfo.image}
-                    currentUserId={JSON.stringify(userInfo._id)}
+                    threadId={thread?.id}
+                    currentUserImg={userInfo?.image}
+                    currentUserId={JSON.stringify(userInfo?._id)}
                 />
             </div>
 
             <div className="mt-10">
-                {thread.children.map((childItem: any) => (
+                {thread?.children.map((childItem: any) => (
                     <ThreadCard 
-                    key={childItem._id}
-                    id={childItem._id}
+                    key={childItem?._id}
+                    id={childItem?._id}
                     currentUserId={user?.id || ''}
-                    parentId={childItem.parentId}
-                    content={childItem.text}
-                    author={childItem.author}
-                    community={childItem.community}
-                    createdAt={childItem.createdAt}
-                    comments={thread.children}
+                    parentId={childItem?.parentId}
+                    content={childItem?.text}
+                    author={childItem?.author}
+                    community={childItem?.community}
+                    createdAt={childItem?.createdAt}
+                    comments={thread?.children}
                     isComment
                     />
                 ))}

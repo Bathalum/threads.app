@@ -9,6 +9,15 @@ import Thread from "../models/thread.model";
 
 import { connectToDB } from "../mongoose"
 
+interface Params{
+    userId: string;
+    username: string;
+    name: string;
+    bio: string;
+    image: string;
+    path: string;
+}
+
 export async function fetchUser(userId:string | null) {
     try {
         connectToDB();
@@ -24,14 +33,6 @@ export async function fetchUser(userId:string | null) {
     }
 }
 
-interface Params{
-    userId: string;
-    username: string;
-    name: string;
-    bio: string;
-    image: string;
-    path: string;
-}
 
 export async function updateUser({
         userId,

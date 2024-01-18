@@ -96,6 +96,7 @@ export async function fetchAllChildThreads(threadId: string): Promise<any[0]> {
         descendantThreads.push(childThread, ...descendants);
     }
 
+    return descendantThreads;
 }
 
 export async function deleteThread(id: string, path: string): Promise<void> {
@@ -104,6 +105,7 @@ export async function deleteThread(id: string, path: string): Promise<void> {
 
         //find the thread to be deleted (the main thread)
         const mainThread = await Thread.findById(id).populate('author community')
+        console.log(mainThread)
 
         if (!mainThread) {
             throw new Error('Thread not found')
@@ -125,6 +127,7 @@ export async function deleteThread(id: string, path: string): Promise<void> {
                 mainThread.author?._id?.toString(),
             ].filter((id) => id !== undefined)
         );
+        
 
         const uniqueCommunityIds = new Set(
             [
@@ -149,8 +152,9 @@ export async function deleteThread(id: string, path: string): Promise<void> {
         );
 
         revalidatePath(path);
-    } catch (error) {
-        
+
+    } catch (error: any) {
+        throw new Error(`Failed to delete thread: ${error.message}`)
     }
 }
 

@@ -1,13 +1,7 @@
 import { SignIn } from "@clerk/nextjs";
-import type { Metadata } from 'next'
 import Image from "next/image";
 
 import { dark } from '@clerk/themes';
-
-export const metadata: Metadata = {
-  title: 'MTO',
-  description: 'Wag tumigil sa pagahahanap, lagi naman May Trabaho Online'
-}
  
 export default function Page() {
   return (
