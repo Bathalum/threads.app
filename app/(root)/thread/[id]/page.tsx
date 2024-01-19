@@ -56,9 +56,6 @@ const Page = async ({ params }: { params: {id: string}}) => {
                     />
                 ))}
             </div>
-
-            <div>
-            </div>
         </section>
     )
 }
